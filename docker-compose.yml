@@ -1,0 +1,29 @@
+# TODO: This is our infrastructure file. Everything our app depends on runs here.
+# Think of it like a "manifest" — instead of installing PostgreSQL, Redis, Kafka
+# on your machine, Docker runs them in isolated containers.
+# At work, AWS provides these services (RDS, ElastiCache, MSK).
+# Locally, docker-compose simulates that.
+
+services:
+  # --- Phase 1: PostgreSQL ---
+  # This replaces the MongoDB you used in the tutorial.
+  # In production, this would be AWS RDS (managed PostgreSQL).
+  postgres:
+    image: postgres:16-alpine          # Official Postgres image, alpine = lightweight
+    container_name: notes_postgres
+    ports:
+      - "5432:5432"                    # host:container — your app connects to localhost:5432
+    environment:
+      POSTGRES_USER: notes_admin
+      POSTGRES_PASSWORD: notes_secret  # In production, this comes from AWS Secrets Manager
+      POSTGRES_DB: notes_db            # Creates this database on first startup
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # Persist data across container restarts
+
+  # TODO: Phase 5 — Redis will go here
+  # TODO: Phase 6 — Kafka + Zookeeper will go here
+
+# Named volumes — Docker manages the storage location.
+# Without this, data is lost every time the container restarts.
+volumes:
+  postgres_data:
