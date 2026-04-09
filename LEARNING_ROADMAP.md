@@ -256,6 +256,44 @@ HTTP Request
 
 ---
 
+### Phase 8: Feature-Based Packaging (Industry-Scale Codebase Structure)
+**What**: Refactor from layer-first packages (`controller/`, `service/`, `repository/`) to feature-first packages (`auth/`, `note/`, `common/`).
+**Why**: In larger teams, feature ownership scales better than cross-layer ownership. It reduces package sprawl and makes changes easier to review.
+
+**You'll learn**:
+- How to organize Spring Boot code by domain feature instead of technical layer
+- How to keep each feature vertically sliced (controller + service + repository + dto together)
+- What belongs in `common/` (shared response envelope, global exception handler, config, shared security utilities)
+- How package boundaries improve onboarding, parallel development, and merge conflict reduction
+- Migration strategy: move one feature at a time without breaking endpoints
+
+**Target package shape (example)**:
+```text
+com.notesapp.notes_api
+├── auth
+│   ├── AuthController.kt
+│   ├── AuthService.kt
+│   ├── dto/
+│   ├── model/
+│   └── repository/
+├── note
+│   ├── NoteController.kt
+│   ├── NoteService.kt
+│   ├── dto/
+│   ├── model/
+│   ├── mapper/
+│   └── repository/
+└── common
+    ├── response/
+    ├── exception/
+    ├── security/
+    └── config/
+```
+
+**Android analogy**: Same as feature modules / package-by-feature in Android (`feature/auth`, `feature/notes`, `core/common`) instead of dumping everything into global `ui/`, `data/`, `domain` buckets.
+
+---
+
 ## How to Use This Document
 
 If starting a new Claude session or using a different agent:
@@ -272,6 +310,7 @@ If starting a new Claude session or using a different agent:
 - [ ] Phase 5: Redis
 - [ ] Phase 6: Kafka
 - [ ] Phase 7: AWS
+- [ ] Phase 8: Feature-Based Packaging
 
 ---
 
