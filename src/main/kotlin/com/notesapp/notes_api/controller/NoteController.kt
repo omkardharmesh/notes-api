@@ -6,27 +6,30 @@ import com.notesapp.notes_api.dto.NoteResponse
 import com.notesapp.notes_api.service.NoteService
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.*
 
-const val USER_ID = 1L
 
 @RestController
 @RequestMapping("/notes")
 class NoteController(
     val noteService: NoteService
 ) {
+    private fun getUserId(): Long =
+        SecurityContextHolder.getContext().authentication!!.principal as Long
+
     @GetMapping
     fun getNotes(): BaseResponse<List<NoteResponse>> {
         return BaseResponse(
             code = HttpStatus.OK.value(),
             message = "Successfully fetched notes",
-            data = noteService.getAll(userId = USER_ID)
+            data = noteService.getAll(userId = getUserId())
         )
     }
 
     @PostMapping
-    fun createNote(userId: Long = USER_ID, @RequestBody @Valid noteRequest: NoteRequest): BaseResponse<NoteResponse> {
-        val createdNote = noteService.create(userId, noteRequest)
+    fun createNote(@RequestBody @Valid noteRequest: NoteRequest): BaseResponse<NoteResponse> {
+        val createdNote = noteService.create(getUserId(), noteRequest)
         return BaseResponse(
             code = HttpStatus.CREATED.value(),
             message = "Successfully created note",
@@ -36,11 +39,10 @@ class NoteController(
 
     @PutMapping("/{id}")
     fun updateNote(
-        userId: Long = USER_ID,
         @PathVariable id: Long,
         @RequestBody @Valid noteRequest: NoteRequest
     ): BaseResponse<NoteResponse> {
-        val updatedNote = noteService.update(userId = userId, noteId = id, noteRequest = noteRequest)
+        val updatedNote = noteService.update(userId = getUserId(), noteId = id, noteRequest = noteRequest)
         return BaseResponse(
             code = HttpStatus.OK.value(),
             message = "Successfully updated note",
@@ -49,9 +51,8 @@ class NoteController(
     }
 
     @DeleteMapping("/{id}")
-    fun deleteNote(userId: Long = USER_ID, @PathVariable id: Long): BaseResponse<Unit> {
-
-        noteService.delete(noteId = id, userId = userId)
+    fun deleteNote(@PathVariable id: Long): BaseResponse<Unit> {
+        noteService.delete(noteId = id, userId = getUserId())
         return BaseResponse(
             code = HttpStatus.OK.value(),
             message = "Successfully deleted note",

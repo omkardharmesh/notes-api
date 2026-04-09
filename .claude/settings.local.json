@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh auth:*)",
+      "Bash(git commit:*)",
+      "Bash(./gradlew dependencies:*)",
+      "Bash(./gradlew compileKotlin)"
+    ]
+  }
+}

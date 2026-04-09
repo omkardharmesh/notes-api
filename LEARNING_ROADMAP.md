@@ -19,6 +19,7 @@
 - Only write code if the user explicitly asks you to
 - Use Android analogies — the user is an Android dev
 - When explaining, connect to what they already know (Room, Ktor, Koin, MVVM)
+- Log every mistake the user makes to the **Lessons Learned** section at the bottom of this doc, in the same table format, grouped by phase/step
 
 ---
 
@@ -267,7 +268,7 @@ If starting a new Claude session or using a different agent:
 - [x] Phase 1: Docker Setup
 - [x] Phase 2: New Spring Boot Project
 - [x] Phase 3: Entities, JPA, CRUD
-- [ ] Phase 4: Auth (JWT + Spring Security)
+- [x] Phase 4: Auth (JWT + Spring Security)
 - [ ] Phase 5: Redis
 - [ ] Phase 6: Kafka
 - [ ] Phase 7: AWS
@@ -324,6 +325,46 @@ If starting a new Claude session or using a different agent:
 | `userId` in URL path `/{userId}` | Hardcoded for now, will come from JWT in Phase 4 | Client never sends their own identity. Server extracts it from auth token |
 | `@NotBlank` on `Long` field (color) | Removed — `@NotBlank` is for Strings only | Use `@NotNull` for non-String types, or rely on Kotlin's non-null types |
 | `user` as table name | `@Table(name = "users")` | `user` is a reserved keyword in PostgreSQL. Always quote or rename |
+
+### Phase 4: JwtService
+| Mistake | Correction | Lesson |
+|---------|-----------|--------|
+| `@Value` path `${jwt.secret}` didn't match yml key `app.jwt.secret` | `${app.jwt.secret}` — must match the full yml path | `@Value` paths are exact matches to your yml hierarchy. If it's under `app.jwt:`, the path is `app.jwt.secret` |
+| JJWT deps without version (`io.jsonwebtoken:jjwt-api`) | Added explicit version `:0.12.6` | Spring BOM only manages Spring libraries. Third-party libs (JJWT, Retrofit, etc.) always need explicit versions |
+| `expiration` fields typed as `String` | Changed to `Long` | Millisecond values need numeric types for date math |
+| Missing `.compact()` on `Jwts.builder()` | Added `.compact()` at the end | `.builder()` returns a builder object, not the JWT string. `.compact()` serializes it |
+| Returned `"Bearer $accessToken"` from generate method | Return raw token — `accessToken.compact()` | `Bearer` prefix is added by the client in the `Authorization` header, not by the token generator |
+| `generateRefreshToken` contained parse logic instead of generate | Replaced with builder pattern matching `generateAccessToken` | Generate = `Jwts.builder()`, Parse = `Jwts.parser()` — don't mix them up |
+| `extractDeviceId` read `.subject` instead of custom claim | `claims.get("deviceId", String::class.java)` | `subject` is a standard JWT field (userId). Custom claims use the generic `.get("key", Type)` accessor |
+| `extractDeviceId` return type was `Long` | Changed to `String` | deviceId is a string identifier, not a number |
+| Caught `ParseException` in `isTokenValid` | Catch `Exception` (JJWT throws `JwtException` subtypes) | JJWT uses its own exception hierarchy — `ExpiredJwtException`, `SignatureException`, etc. Broad catch covers all |
+| `app:` block indented under `spring:` in yml | Moved to root level (zero indentation) | YAML indentation = nesting. `app:` under `spring:` becomes `spring.app.jwt.secret` instead of `app.jwt.secret` |
+
+### Phase 4: RefreshToken Entity
+| Mistake | Correction | Lesson |
+|---------|-----------|--------|
+| Missing `@Id` and `@GeneratedValue` on `id` field | Added both annotations | JPA requires these on every entity PK — same as Note and User |
+| Included `accessToken` field in entity | Removed — access tokens are stateless, not stored in DB | Only refresh tokens are stored. Access tokens are validated by signature alone |
+
+### Phase 4: AuthService
+| Mistake | Correction | Lesson |
+|---------|-----------|--------|
+| Called `findByEmail()` three times in `login()` | Fetch once, store in val, reuse | Each call is a separate DB query. Fetch once and reuse the result |
+| Stored raw refresh token instead of hashed in update branch | `bCryptPasswordEncoder.encode(refreshToken)` | Always hash before storing — same rule as passwords |
+| `@Value` path `refresh-token-expiry` didn't match yml key `refresh-token-expiration` | Matched the exact yml key | Mismatched `@Value` paths crash the app on startup — Spring can't find the property |
+| Used `plusSeconds()` with a millisecond value | Changed to `plusMillis()` | Units must match — yml stores milliseconds, so use `plusMillis()` |
+| Used generic `throw Exception(...)` for all errors | Created custom exceptions (`InvalidCredentialsException`, etc.) | Custom exceptions map to specific HTTP status codes via `@ExceptionHandler`. Generic exceptions all become 500 |
+
+### Phase 4: NoteController
+| Mistake | Correction | Lesson |
+|---------|-----------|--------|
+| `userId` as class-level property from `SecurityContextHolder` | Changed to `getUserId()` method called per-request | `SecurityContextHolder` is per-request (thread-local). Reading it at construction time gets nothing — the controller is created once at startup |
+
+### Phase 4: AuthController
+| Mistake | Correction | Lesson |
+|---------|-----------|--------|
+| `@PostMapping` without path on register | Added `@PostMapping("/register")` | Without a sub-path, all POST methods on the class conflict — each endpoint needs its own path |
+| Login endpoint returned `HttpStatus.CREATED` (201) | Changed to `HttpStatus.OK` (200) | 201 = resource created (register). 200 = success (login, refresh). Match status to semantics |
 
 ---
 

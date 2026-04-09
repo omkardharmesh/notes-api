@@ -11,3 +11,9 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+
+app:
+  jwt:
+    secret: 422Hj7MmbEKtmeJZcGN6qs40jAkXra8Few+8+S2Wrqs=
+    access-token-expiration: 900000       # 15 minutes in ms
+    refresh-token-expiration: 2592000000  # 30 days in ms
