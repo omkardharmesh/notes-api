@@ -14,6 +14,7 @@ import com.notesapp.notes_api.security.JwtService
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.stereotype.Service
+import java.security.MessageDigest
 import java.time.Instant
 
 @Service
@@ -24,6 +25,11 @@ class AuthService(
     val bCryptPasswordEncoder: BCryptPasswordEncoder,
     @Value("\${app.jwt.refresh-token-expiration}") val refreshTokenExpirationInMillis: Long,
 ) {
+    private fun sha256(input: String): String {
+        val bytes = MessageDigest.getInstance("SHA-256").digest(input.toByteArray())
+        return bytes.joinToString("") { "%02x".format(it) }
+    }
+
     fun register(authRequest: AuthRequest): AuthResponse {
         if (userRepository.findByEmail(authRequest.email) != null) {
             throw EmailAlreadyExistsException()
@@ -41,7 +47,7 @@ class AuthService(
             RefreshToken(
                 user = savedUser,
                 deviceId = authRequest.deviceId,
-                hashedToken = bCryptPasswordEncoder.encode(refreshToken)!!,
+                hashedToken = sha256(refreshToken),
                 createdAt = Instant.now(),
                 expiresAt = Instant.now().plusMillis(refreshTokenExpirationInMillis),
                 id = null, // JPA auto-generates it with @GeneratedValue.
@@ -70,7 +76,7 @@ class AuthService(
         if (existingRefreshToken != null) {
             refreshTokenRepository.save(
                 existingRefreshToken.copy(
-                    hashedToken = bCryptPasswordEncoder.encode(refreshToken)!!,
+                    hashedToken = sha256(refreshToken),
                     createdAt = Instant.now(),
                     expiresAt = Instant.now().plusMillis(refreshTokenExpirationInMillis),
                 )
@@ -80,7 +86,7 @@ class AuthService(
                 RefreshToken(
                     user = user,
                     deviceId = authRequest.deviceId,
-                    hashedToken = bCryptPasswordEncoder.encode(refreshToken)!!,
+                    hashedToken = sha256(refreshToken),
                     createdAt = Instant.now(),
                     expiresAt = Instant.now().plusMillis(refreshTokenExpirationInMillis),
                     id = null, // JPA auto-generates it with @GeneratedValue.
@@ -109,7 +115,7 @@ class AuthService(
             ?: throw InvalidTokenException("No refresh token found for this device")
 
         // 4. Verify the raw token matches the stored hash
-        if (!bCryptPasswordEncoder.matches(refreshToken, storedToken.hashedToken)) {
+        if (sha256(refreshToken) != storedToken.hashedToken) {
             throw InvalidTokenException("Invalid refresh token")
         }
 
@@ -126,7 +132,7 @@ class AuthService(
         // 7. Rotate — update stored token with new hash + expiry
         refreshTokenRepository.save(
             storedToken.copy(
-                hashedToken = bCryptPasswordEncoder.encode(newRefreshToken)!!,
+                hashedToken = sha256(newRefreshToken),
                 createdAt = Instant.now(),
                 expiresAt = Instant.now().plusMillis(refreshTokenExpirationInMillis),
             )
