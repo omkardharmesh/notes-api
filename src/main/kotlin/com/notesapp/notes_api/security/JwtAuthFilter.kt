@@ -3,6 +3,7 @@ package com.notesapp.notes_api.security
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import com.notesapp.notes_api.service.TokenBlacklistService
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
@@ -11,6 +12,7 @@ import org.springframework.web.filter.OncePerRequestFilter
 @Component
 class JwtAuthFilter(
     private val jwtService: JwtService,
+    private val tokenBlacklistService: TokenBlacklistService,
 ) : OncePerRequestFilter() {
 
     override fun doFilterInternal(
@@ -31,7 +33,7 @@ class JwtAuthFilter(
         val token = authHeader.removePrefix("Bearer ")
 
         // 4. Validate the token
-        if (jwtService.isTokenValid(token)) {
+        if (jwtService.isTokenValid(token) && !tokenBlacklistService.isBlacklisted(token)) {
             // 5. Extract userId and set authentication in SecurityContext
             val userId = jwtService.extractUserId(token)
             val authentication = UsernamePasswordAuthenticationToken(

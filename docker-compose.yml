@@ -20,7 +20,12 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data  # Persist data across container restarts
 
-  # TODO: Phase 5 — Redis will go here
+  redis:
+    image: redis:7-alpine         # alpine = lightweight
+    container_name: notes_redis
+    ports:
+      - "6379:6379"
+
   # TODO: Phase 6 — Kafka + Zookeeper will go here
 
 # Named volumes — Docker manages the storage location.

@@ -8,9 +8,13 @@ spring:
       ddl-auto: update
     show-sql: true
     open-in-view: false
+  data:
+    redis:
+      host: localhost
+      port: 6379
 
 app:
   jwt:
     secret: 422Hj7MmbEKtmeJZcGN6qs40jAkXra8Few+8+S2Wrqs=
-    access-token-expiration: 900000       # 15 minutes in ms
+    access-token-expiration: 3600000       # 1 hour in ms
     refresh-token-expiration: 2592000000  # 30 days in ms

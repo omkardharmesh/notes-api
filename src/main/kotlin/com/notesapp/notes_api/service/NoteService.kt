@@ -6,6 +6,8 @@ import com.notesapp.notes_api.mapper.toResponse
 import com.notesapp.notes_api.model.Note
 import com.notesapp.notes_api.repository.NoteRepository
 import com.notesapp.notes_api.repository.UserRepository
+import org.springframework.cache.annotation.Cacheable
+import org.springframework.cache.annotation.CacheEvict
 import org.springframework.stereotype.Service
 import java.time.Instant
 
@@ -14,6 +16,7 @@ class NoteService(
     private val noteRepository: NoteRepository,
     private val userRepository: UserRepository,
 ) {
+    @CacheEvict(cacheNames = ["notes"], key = "#userId")
     fun create(userId: Long, noteRequest: NoteRequest): NoteResponse {
         val note = Note(
             title = noteRequest.title,
@@ -28,6 +31,7 @@ class NoteService(
         return savedNote.toResponse()
     }
 
+    @CacheEvict(cacheNames = ["notes"], key = "#userId")
     fun update(userId: Long, noteId: Long, noteRequest: NoteRequest): NoteResponse {
         val existingNote: Note = noteRepository.findById(noteId).orElseThrow {
             Exception("Note not found")
@@ -47,12 +51,12 @@ class NoteService(
 
         return updatedNote.toResponse()
     }
-
+    @Cacheable(value = ["notes"], key = "#userId")
     fun getAll(userId: Long): List<NoteResponse> {
         return noteRepository.findByOwnerIdAndIsDeletedFalse(userId).map { it.toResponse() }
     }
 
-    //need to return just succes here ??
+    @CacheEvict(cacheNames = ["notes"], key = "#userId")
     fun delete(noteId: Long, userId: Long): Unit {
         val existingNote = noteRepository.findById(noteId).orElseThrow {
             Exception("Note not found")

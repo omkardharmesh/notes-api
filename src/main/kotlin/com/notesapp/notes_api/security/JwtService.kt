@@ -54,6 +54,16 @@ class JwtService(
         return claims.get("deviceId", String::class.java)
     }
 
+    fun getExpirationMs(token: String): Long {
+        val expiration = Jwts.parser()
+            .verifyWith(key)
+            .build()
+            .parseSignedClaims(token)
+            .payload
+            .expiration
+        return expiration.time - System.currentTimeMillis()
+    }
+
     fun isTokenValid(accessToken: String): Boolean {
         try {
             Jwts.parser()

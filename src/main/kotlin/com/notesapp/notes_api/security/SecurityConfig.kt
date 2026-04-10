@@ -22,7 +22,7 @@ class SecurityConfig(
         http
             .csrf { it.disable() }
             .authorizeHttpRequests {
-                it.requestMatchers("/auth/**").permitAll()
+                it.requestMatchers("/auth/register", "/auth/login", "/auth/refresh").permitAll()
                 it.anyRequest().authenticated()
             }
             // Run JwtAuthFilter BEFORE Spring's built-in auth filter.
