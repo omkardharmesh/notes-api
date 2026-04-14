@@ -4,6 +4,14 @@
 # At work, AWS provides these services (RDS, ElastiCache, MSK).
 # Locally, docker-compose simulates that.
 
+#service-name:
+#  image: image-name:tag
+#  ports:
+#    - "host-port:container-port"
+#  environment:
+#    - SOME_VAR=value
+
+
 services:
   # --- Phase 1: PostgreSQL ---
   # This replaces the MongoDB you used in the tutorial.
@@ -26,7 +34,28 @@ services:
     ports:
       - "6379:6379"
 
-  # TODO: Phase 6 — Kafka + Zookeeper will go here
+  # --- Phase 6: Kafka (KRaft mode — no Zookeeper needed) ---
+  # Kafka = distributed event log. Services publish events, other services consume them.
+  # At work, this is AWS MSK (Managed Streaming for Apache Kafka).
+  # Android analogy: like WorkManager — fire an event, something processes it async.
+
+  kafka:
+    image: apache/kafka:3.8.1
+    container_name: notes_kafka
+    ports:
+      - "9092:9092"
+    environment:
+      # KRaft mode — Kafka manages itself, no Zookeeper
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller                        # This single node acts as both
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093              # Controller election (just itself for local dev)
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092         # How YOUR APP connects — localhost because it's outside Docker
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1                     # Default is 3, but we only have 1 broker
+      CLUSTER_ID: notes-kafka-local-dev-01                          # Fixed cluster ID — KRaft needs one, random is fine for local
+
 
 # Named volumes — Docker manages the storage location.
 # Without this, data is lost every time the container restarts.

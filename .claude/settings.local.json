@@ -4,7 +4,16 @@
       "Bash(gh auth:*)",
       "Bash(git commit:*)",
       "Bash(./gradlew dependencies:*)",
-      "Bash(./gradlew compileKotlin)"
+      "Bash(./gradlew compileKotlin)",
+      "Bash(git add:*)",
+      "WebSearch",
+      "Bash(./gradlew clean:*)",
+      "Bash(./gradlew bootRun)",
+      "Bash(./gradlew bootRun --debug)",
+      "Bash(lsof -ti:8080)",
+      "Bash(xargs kill:*)",
+      "Bash(rtk proxy:*)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080)"
     ]
   }
 }

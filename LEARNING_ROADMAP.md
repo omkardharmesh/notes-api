@@ -308,7 +308,7 @@ If starting a new Claude session or using a different agent:
 - [x] Phase 3: Entities, JPA, CRUD
 - [x] Phase 4: Auth (JWT + Spring Security)
 - [x] Phase 5: Redis
-- [ ] Phase 6: Kafka
+- [x] Phase 6: Kafka
 - [ ] Phase 7: AWS
 - [ ] Phase 8: Feature-Based Packaging
 
@@ -404,6 +404,19 @@ If starting a new Claude session or using a different agent:
 |---------|-----------|--------|
 | `@PostMapping` without path on register | Added `@PostMapping("/register")` | Without a sub-path, all POST methods on the class conflict — each endpoint needs its own path |
 | Login endpoint returned `HttpStatus.CREATED` (201) | Changed to `HttpStatus.OK` (200) | 201 = resource created (register). 200 = success (login, refresh). Match status to semantics |
+
+---
+
+### Phase 6: Kafka
+| Mistake | Correction | Lesson |
+|---------|-----------|--------|
+| Used `org.springframework.kafka:spring-kafka` (raw library) | `org.springframework.boot:spring-boot-starter-kafka` | Always use `spring-boot-starter-*` when available — the starter includes auto-configuration that creates beans like `KafkaTemplate`. Raw library = no auto-config |
+| `Instant` type in event class | Changed to `Long` (epoch millis) | Kafka's `JsonSerializer` uses its own Jackson instance without Kotlin/JavaTime modules. Keep event fields as primitives (`String`, `Long`, `Int`) for cross-service compatibility |
+| `data class` with `val` only, no defaults | `var` with defaults for all fields | Jackson needs a no-arg constructor for deserialization. `var` + defaults gives Kotlin data classes a no-arg constructor |
+| YAML `producer`/`consumer` indented wrong (under each other instead of siblings under `kafka:`) | Both must be at the same indent level under `spring.kafka:` | YAML indentation = nesting hierarchy. Same mistake as Phase 2 with `app:` under `spring:` |
+| Topic name mismatch: producer sent to `note_created`, consumer listened on `note-created` | Must match exactly | Use a constant or copy-paste. `_` vs `-` is invisible at a glance |
+| Put full JPA entity (`Note`) in the event class | Use flat primitive fields only | Events cross service boundaries. The consumer might not have your entity class. Keep events self-contained with simple types |
+| `bootstrap-servers: 9092` (port only) | `bootstrap-servers: localhost:9092` (full address) | Same as Phase 2 JDBC URL mistake — always include the host. Port alone isn't a valid address |
 
 ---
 
