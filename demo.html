@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notes API — Live Demo</title>
+<style>
+  :root {
+    --bg: #0c0e14;
+    --surface: #141720;
+    --surface2: #1b1f2c;
+    --border: #252a3a;
+    --border-subtle: #1c2030;
+    --text: #e2e4ed;
+    --text2: #7a7f9a;
+    --text3: #4a5070;
+    --accent: #6c5ce7;
+    --accent2: #a29bfe;
+    --accent-glow: rgba(108,92,231,0.12);
+    --accent-glow2: rgba(108,92,231,0.06);
+    --green: #00d2a0;
+    --green-soft: rgba(0,210,160,0.08);
+    --green-dim: rgba(0,210,160,0.15);
+    --red: #ff6b6b;
+    --red-soft: rgba(255,107,107,0.08);
+    --red-dim: rgba(255,107,107,0.15);
+    --orange: #fdcb6e;
+    --orange-soft: rgba(253,203,110,0.08);
+    --orange-dim: rgba(253,203,110,0.15);
+    --blue: #74b9ff;
+    --blue-soft: rgba(116,185,255,0.08);
+    --blue-dim: rgba(116,185,255,0.15);
+    --coral: #e17055;
+    --coral-soft: rgba(225,112,85,0.08);
+    --purple-soft: rgba(108,92,231,0.08);
+
+    --sp-xs: 4px;
+    --sp-sm: 8px;
+    --sp-md: 12px;
+    --sp-base: 16px;
+    --sp-lg: 24px;
+    --sp-xl: 32px;
+    --sp-2xl: 48px;
+    --sp-3xl: 64px;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, 'Inter', 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; line-height: 1.5;
+  }
+  .mono { font-family: 'SF Mono','Fira Code','JetBrains Mono', monospace; }
+
+  /* ── Header ── */
+  header {
+    padding: var(--sp-lg) var(--sp-xl);
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(108,92,231,0.04) 0%, transparent 100%);
+    position: relative;
+  }
+  header::after {
+    content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2) 40%, transparent 80%);
+  }
+  .header-left { display: flex; align-items: center; gap: var(--sp-base); }
+  .logo {
+    width: 36px; height: 36px; border-radius: var(--radius-sm);
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 15px; color: #fff; flex-shrink: 0;
+    box-shadow: 0 4px 16px rgba(108,92,231,0.3);
+  }
+  header h1 { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
+  header .sub { font-size: 11px; color: var(--text2); margin-top: 1px; }
+  .header-right { display: flex; align-items: center; gap: var(--sp-lg); }
+  .pill {
+    display: flex; align-items: center; gap: var(--sp-sm);
+    font-size: 11px; color: var(--text2); font-weight: 500;
+    background: var(--green-soft); padding: 5px 12px; border-radius: 20px;
+    border: 1px solid rgba(0,210,160,0.12);
+  }
+  .pill.offline { background: var(--red-soft); border-color: rgba(255,107,107,0.12); }
+  .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--green); animation: pulse 2s infinite;
+    box-shadow: 0 0 8px rgba(0,210,160,0.4);
+  }
+  .dot.off { background: var(--red); box-shadow: 0 0 8px rgba(255,107,107,0.4); }
+  @keyframes pulse { 50% { opacity: 0.3; } }
+  .counter { color: var(--text3); font-size: 11px; }
+  .counter b { color: var(--accent2); font-variant-numeric: tabular-nums; }
+
+  /* ── Session Bar ── */
+  .session-bar {
+    padding: var(--sp-md) var(--sp-xl);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: var(--sp-lg);
+    font-size: 12px; min-height: 44px;
+    transition: background 0.3s, border-color 0.3s;
+  }
+  .session-bar.authed {
+    background: linear-gradient(90deg, rgba(0,210,160,0.05) 0%, var(--surface) 50%);
+    border-bottom-color: rgba(0,210,160,0.1);
+  }
+  .session-bar .tag {
+    font-size: 9px; text-transform: uppercase; letter-spacing: 1.2px;
+    color: var(--text3); font-weight: 700;
+  }
+  .session-bar.authed .tag { color: var(--green); }
+  .session-bar .user-name { color: var(--accent2); font-weight: 600; }
+  .session-bar .token-preview {
+    color: var(--text3); font-size: 10px; max-width: 180px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    background: var(--surface2); padding: 3px 8px; border-radius: 4px;
+  }
+  .session-bar .spacer { flex: 1; }
+  .session-bar .empty-msg { color: var(--text3); font-style: italic; font-size: 11px; }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 7px 16px; border-radius: var(--radius-sm); border: none;
+    font-family: inherit; font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn:active { transform: none; }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+  .btn-accent { background: var(--accent); color: #fff; box-shadow: 0 2px 12px rgba(108,92,231,0.25); }
+  .btn-accent:hover { background: #7d6ef0; box-shadow: 0 4px 16px rgba(108,92,231,0.35); }
+  .btn-green { background: var(--green); color: #fff; box-shadow: 0 2px 12px rgba(0,210,160,0.25); }
+  .btn-green:hover { box-shadow: 0 4px 16px rgba(0,210,160,0.35); }
+  .btn-red { background: var(--red); color: #fff; }
+  .btn-red:hover { background: #ff8585; }
+  .btn-orange { background: var(--orange); color: var(--bg); }
+  .btn-orange:hover { background: #fee08b; }
+  .btn-ghost { background: transparent; color: var(--text2); padding: 7px 12px; }
+  .btn-ghost:hover { color: var(--text); background: var(--surface2); }
+  .btn-ghost.active { color: var(--accent2); background: var(--accent-glow); }
+  .btn-sm { padding: 4px 10px; font-size: 11px; }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex; gap: var(--sp-xs);
+    padding: 0 var(--sp-xl);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .tab {
+    padding: 13px 20px 11px; font-size: 12px; font-weight: 600;
+    color: var(--text3); cursor: pointer;
+    border-bottom: 2px solid transparent; transition: all 0.12s;
+  }
+  .tab:hover { color: var(--text2); }
+  .tab.active {
+    color: var(--accent2); border-bottom-color: var(--accent);
+    background: linear-gradient(to top, var(--accent-glow2), transparent 70%);
+  }
+
+  /* ── Main ── */
+  .main { max-width: 960px; margin: 0 auto; padding: var(--sp-xl) var(--sp-xl) var(--sp-3xl); }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ── Auth ── */
+  .auth-box { max-width: 420px; margin: var(--sp-xl) auto 0; }
+  .auth-toggle {
+    display: flex; background: var(--surface); border-radius: var(--radius);
+    padding: 3px; margin-bottom: var(--sp-xl); gap: 3px;
+    border: 1px solid var(--border);
+  }
+  .auth-toggle .toggle-btn {
+    flex: 1; padding: 9px; border: none; border-radius: 7px;
+    font-family: inherit; font-size: 12px; font-weight: 600;
+    background: transparent; color: var(--text3); cursor: pointer;
+    transition: all 0.15s;
+  }
+  .auth-toggle .toggle-btn.active {
+    background: var(--accent); color: #fff;
+    box-shadow: 0 2px 12px rgba(108,92,231,0.3);
+  }
+  .form-stack { display: flex; flex-direction: column; gap: var(--sp-base); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-base); }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--text3); font-weight: 600;
+  }
+  .field input, .field textarea {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 10px 14px;
+    font-family: inherit; font-size: 13px; color: var(--text);
+    outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .field input:focus, .field textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  .field textarea { resize: vertical; min-height: 88px; }
+  .auth-hint {
+    text-align: center; margin-top: var(--sp-lg);
+    font-size: 11px; color: var(--text3); line-height: 1.7;
+  }
+  .token-actions {
+    margin-top: var(--sp-2xl); padding-top: var(--sp-lg);
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: var(--sp-base);
+  }
+  .token-actions .hint { font-size: 11px; color: var(--text3); flex: 1; }
+
+  /* ── Notes ── */
+  .notes-toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: var(--sp-lg);
+  }
+  .notes-toolbar h2 { font-size: 15px; font-weight: 700; }
+  .notes-toolbar h2 span { color: var(--text3); font-weight: 400; }
+
+  /* Create form */
+  .create-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius); padding: var(--sp-lg);
+    margin-bottom: var(--sp-xl);
+    position: relative;
+  }
+  .create-bar::before {
+    content: ''; position: absolute; inset: 0; border-radius: var(--radius);
+    background: linear-gradient(135deg, var(--accent-glow2), transparent 60%);
+    pointer-events: none;
+  }
+  .create-bar .create-fields {
+    display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-md) var(--sp-base);
+    position: relative;
+  }
+  .create-bar .full { grid-column: 1 / -1; }
+  .create-bar .field label { color: var(--accent2); }
+
+  /* Color swatches */
+  .colors { display: flex; gap: 6px; align-items: center; }
+  .swatch {
+    width: 22px; height: 22px; border-radius: 5px; cursor: pointer;
+    border: 2px solid transparent; transition: all 0.12s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  .swatch:hover { transform: scale(1.15); }
+  .swatch.on {
+    border-color: #fff; transform: scale(1.15);
+    box-shadow: 0 2px 12px rgba(255,255,255,0.15);
+  }
+
+  /* Notes grid */
+  .notes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--sp-base);
+  }
+  .note-card {
+    border-radius: var(--radius); padding: var(--sp-lg);
+    position: relative; overflow: hidden;
+    border: 1px solid var(--border);
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+  }
+  .note-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+  /* Color-tinted backgrounds — set via JS inline */
+  .note-bar {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .note-card h4 { font-size: 14px; font-weight: 700; margin: var(--sp-xs) 0 var(--sp-sm); }
+  .note-card p { font-size: 12px; color: var(--text2); line-height: 1.7; }
+  .note-card .meta {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: var(--sp-base); padding-top: var(--sp-md);
+    border-top: 1px solid rgba(255,255,255,0.05);
+    font-size: 10px; color: var(--text3);
+  }
+  .note-card .actions { display: flex; gap: 4px; }
+
+  /* Table view */
+  .table-wrap {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .tbl th {
+    text-align: left; padding: var(--sp-md) var(--sp-base);
+    background: var(--surface2); color: var(--text3);
+    font-size: 10px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;
+  }
+  .tbl td {
+    padding: var(--sp-md) var(--sp-base);
+    border-top: 1px solid var(--border-subtle);
+    max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .tbl tr { transition: background 0.1s; }
+  .tbl tr:hover td { background: var(--surface2); }
+  .tbl .id { font-weight: 700; color: var(--accent2); }
+  .tbl .color-cell { display: flex; align-items: center; gap: 6px; }
+
+  .empty {
+    text-align: center; padding: var(--sp-3xl) var(--sp-lg);
+    color: var(--text3); font-size: 13px;
+  }
+  .empty-icon {
+    width: 48px; height: 48px; border-radius: 12px;
+    background: var(--accent-glow); display: inline-flex;
+    align-items: center; justify-content: center;
+    margin-bottom: var(--sp-md); font-size: 22px;
+  }
+
+  /* ── Log Drawer ── */
+  .log-drawer {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--surface); border-top: 1px solid var(--border);
+    transform: translateY(calc(100% - 36px));
+    transition: transform 0.25s ease;
+    z-index: 100; max-height: 320px;
+  }
+  .log-drawer.open { transform: translateY(0); }
+  .log-handle {
+    padding: 8px var(--sp-xl); display: flex; align-items: center;
+    justify-content: space-between; cursor: pointer;
+    font-size: 11px; font-weight: 600; color: var(--text3);
+    border-bottom: 1px solid var(--border);
+    user-select: none; transition: color 0.12s;
+  }
+  .log-handle:hover { color: var(--text2); }
+  .log-handle .arrow { transition: transform 0.25s; }
+  .log-drawer.open .log-handle .arrow { transform: rotate(180deg); }
+  .log-handle .log-label { display: flex; align-items: center; gap: var(--sp-sm); }
+  .log-handle .log-dot {
+    width: 5px; height: 5px; border-radius: 50%; background: var(--accent);
+  }
+  .log-scroll { max-height: 280px; overflow-y: auto; }
+  .log-row {
+    padding: var(--sp-sm) var(--sp-xl);
+    display: flex; gap: var(--sp-md); align-items: center;
+    font-size: 11px; border-bottom: 1px solid var(--border-subtle);
+    transition: background 0.1s;
+  }
+  .log-row:hover { background: var(--surface2); }
+  .log-badge {
+    font-weight: 700; font-size: 9px; padding: 2px 7px;
+    border-radius: 3px; min-width: 46px; text-align: center;
+    letter-spacing: 0.3px;
+  }
+  .log-badge.GET { background: var(--blue-dim); color: var(--blue); }
+  .log-badge.POST { background: var(--green-dim); color: var(--green); }
+  .log-badge.PUT { background: var(--orange-dim); color: var(--orange); }
+  .log-badge.DELETE { background: var(--red-dim); color: var(--red); }
+  .log-path { color: var(--text2); flex: 1; }
+  .log-code { font-weight: 700; min-width: 24px; text-align: center; }
+  .log-code.ok { color: var(--green); }
+  .log-code.err { color: var(--red); }
+  .log-ts { color: var(--text3); font-variant-numeric: tabular-nums; min-width: 68px; text-align: right; }
+
+  /* ── Modal ── */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    display: none; align-items: center; justify-content: center;
+    z-index: 200;
+  }
+  .overlay.show { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: var(--sp-xl);
+    width: 400px; max-width: 90vw;
+    box-shadow: 0 24px 48px rgba(0,0,0,0.4), 0 0 0 1px rgba(108,92,231,0.1);
+  }
+  .modal h3 {
+    font-size: 14px; margin-bottom: var(--sp-lg);
+    display: flex; align-items: center; gap: var(--sp-sm);
+    color: var(--accent2);
+  }
+  .modal .form-stack { margin-bottom: var(--sp-lg); }
+
+  /* ── Toast ── */
+  .toasts { position: fixed; bottom: 48px; right: var(--sp-lg); display: flex; flex-direction: column; gap: var(--sp-sm); z-index: 300; }
+  .toast {
+    padding: var(--sp-md) var(--sp-lg); border-radius: var(--radius-sm);
+    font-size: 12px; font-weight: 600;
+    animation: fadeIn 0.2s ease;
+  }
+  .toast.success { background: var(--green); color: #fff; box-shadow: 0 4px 20px rgba(0,210,160,0.35); }
+  .toast.error { background: var(--red); color: #fff; box-shadow: 0 4px 20px rgba(255,107,107,0.35); }
+  .toast.info { background: var(--accent); color: #fff; box-shadow: 0 4px 20px rgba(108,92,231,0.35); }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } }
+
+  .spinner {
+    display: inline-block; width: 13px; height: 13px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff; border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- ─── HEADER ─── -->
+<header>
+  <div class="header-left">
+    <div class="logo">N</div>
+    <div>
+      <h1>Notes API</h1>
+      <div class="sub">Spring Boot + Kotlin &middot; JWT &middot; RDS &middot; Redis &middot; ECS Fargate</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="counter">Requests: <b id="statReqs">0</b></div>
+    <div class="pill" id="statusPill">
+      <div class="dot" id="statusDot"></div>
+      <span id="statusText">Checking...</span>
+    </div>
+  </div>
+</header>
+
+<!-- ─── SESSION BAR ─── -->
+<div class="session-bar" id="sessionBar">
+  <span class="tag">Session</span>
+  <span class="empty-msg" id="noSession">Not authenticated</span>
+  <span class="user-name" id="sessionUser" style="display:none;"></span>
+  <span class="token-preview mono" id="sessionToken" style="display:none;"></span>
+  <span class="spacer"></span>
+  <button class="btn btn-orange btn-sm" id="btnRefreshBar" onclick="doRefreshToken()" style="display:none;">Refresh</button>
+  <button class="btn btn-red btn-sm" id="btnLogoutBar" onclick="doLogout()" style="display:none;">Logout</button>
+</div>
+
+<!-- ─── TABS ─── -->
+<div class="tabs">
+  <div class="tab active" data-tab="auth" onclick="switchTab('auth')">Auth</div>
+  <div class="tab" data-tab="notes" onclick="switchTab('notes')">Notes</div>
+</div>
+
+<!-- ─── CONTENT ─── -->
+<div class="main">
+
+  <!-- AUTH -->
+  <div class="panel active" id="panel-auth">
+    <div class="auth-box">
+      <div class="auth-toggle">
+        <button class="toggle-btn active" onclick="setAuthMode('register')">Register</button>
+        <button class="toggle-btn" onclick="setAuthMode('login')">Login</button>
+      </div>
+      <div class="form-stack" id="authForm">
+        <div class="form-row">
+          <div class="field">
+            <label>Username</label>
+            <input type="text" id="authUsername" placeholder="johndoe" />
+          </div>
+          <div class="field">
+            <label>Email</label>
+            <input type="email" id="authEmail" placeholder="john@example.com" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label>Password</label>
+            <input type="password" id="authPassword" placeholder="min 6 chars" />
+          </div>
+          <div class="field">
+            <label>Device ID</label>
+            <input type="text" id="authDevice" value="demo-browser" />
+          </div>
+        </div>
+        <button class="btn btn-green" id="btnAuth" onclick="doAuth()" style="width:100%;">Create Account</button>
+      </div>
+      <div class="auth-hint">
+        JWT access + refresh tokens issued on success.<br>
+        Logout blacklists tokens via Redis. Refresh rotates both.
+      </div>
+      <div class="token-actions" id="tokenActions" style="display:none;">
+        <button class="btn btn-orange btn-sm" onclick="doRefreshToken()">Refresh Tokens</button>
+        <button class="btn btn-red btn-sm" onclick="doLogout()">Logout</button>
+        <span class="hint" style="font-size:11px;color:var(--text3);flex:1;">Rotate tokens or invalidate session.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTES -->
+  <div class="panel" id="panel-notes">
+    <div class="create-bar">
+      <div class="create-fields">
+        <div class="field">
+          <label>Title</label>
+          <input type="text" id="noteTitle" placeholder="My awesome note" />
+        </div>
+        <div class="field">
+          <label>Color</label>
+          <div class="colors" id="colorPicker" style="margin-top:6px;">
+            <div class="swatch on" data-c="0" style="background:#6c5ce7;" onclick="pickColor(this)"></div>
+            <div class="swatch" data-c="1" style="background:#00d2a0;" onclick="pickColor(this)"></div>
+            <div class="swatch" data-c="2" style="background:#fdcb6e;" onclick="pickColor(this)"></div>
+            <div class="swatch" data-c="3" style="background:#ff6b6b;" onclick="pickColor(this)"></div>
+            <div class="swatch" data-c="4" style="background:#74b9ff;" onclick="pickColor(this)"></div>
+            <div class="swatch" data-c="5" style="background:#e17055;" onclick="pickColor(this)"></div>
+          </div>
+        </div>
+        <div class="field full">
+          <label>Content</label>
+          <textarea id="noteContent" placeholder="Write something interesting..." rows="2"></textarea>
+        </div>
+      </div>
+      <div style="margin-top:var(--sp-base); display:flex; justify-content:flex-end; position:relative;">
+        <button class="btn btn-green" id="btnCreate" onclick="doCreateNote()">Create Note</button>
+      </div>
+    </div>
+
+    <div class="notes-toolbar">
+      <h2>Notes <span id="noteCount"></span></h2>
+      <div style="display:flex; align-items:center; gap:var(--sp-sm);">
+        <div class="view-toggle">
+          <button class="btn btn-ghost btn-sm active" id="viewCards" onclick="setView('cards')">Cards</button>
+          <button class="btn btn-ghost btn-sm" id="viewTable" onclick="setView('table')">Table</button>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="doFetchNotes()">Refresh</button>
+      </div>
+    </div>
+
+    <div id="notesCards">
+      <div class="empty">
+        <div class="empty-icon">&#128466;</div>
+        <p>No notes yet. Create one above.</p>
+      </div>
+    </div>
+    <div id="notesTable" style="display:none;">
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>ID</th><th>Title</th><th>Content</th><th>Color</th><th>Created</th></tr></thead>
+          <tbody id="tblBody"><tr><td colspan="5" class="empty">No data</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── EDIT MODAL ─── -->
+<div class="overlay" id="editModal">
+  <div class="modal">
+    <h3>Edit Note #<span id="editId">?</span></h3>
+    <div class="form-stack">
+      <div class="field">
+        <label>Title</label>
+        <input type="text" id="editTitle" />
+      </div>
+      <div class="field">
+        <label>Content</label>
+        <textarea id="editContent"></textarea>
+      </div>
+      <div class="field">
+        <label>Color</label>
+        <div class="colors" id="editColors">
+          <div class="swatch" data-c="0" style="background:#6c5ce7;" onclick="pickEditColor(this)"></div>
+          <div class="swatch" data-c="1" style="background:#00d2a0;" onclick="pickEditColor(this)"></div>
+          <div class="swatch" data-c="2" style="background:#fdcb6e;" onclick="pickEditColor(this)"></div>
+          <div class="swatch" data-c="3" style="background:#ff6b6b;" onclick="pickEditColor(this)"></div>
+          <div class="swatch" data-c="4" style="background:#74b9ff;" onclick="pickEditColor(this)"></div>
+          <div class="swatch" data-c="5" style="background:#e17055;" onclick="pickEditColor(this)"></div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex; gap:var(--sp-sm);">
+      <button class="btn btn-orange" onclick="doUpdateNote()">Save</button>
+      <button class="btn btn-ghost" onclick="closeEdit()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── LOG DRAWER ─── -->
+<div class="log-drawer" id="logDrawer">
+  <div class="log-handle" onclick="toggleLog()">
+    <span class="log-label"><span class="log-dot"></span> API Log <span style="color:var(--accent2);" id="logCount">(0)</span></span>
+    <span class="arrow">&#9650;</span>
+  </div>
+  <div class="log-scroll" id="logScroll"></div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script>
+const BASE = 'http://notes-api-alb-529697237.ap-south-1.elb.amazonaws.com';
+const COLORS = ['#6c5ce7','#00d2a0','#fdcb6e','#ff6b6b','#74b9ff','#e17055'];
+const COLOR_SOFT = [
+  'rgba(108,92,231,0.07)',
+  'rgba(0,210,160,0.07)',
+  'rgba(253,203,110,0.07)',
+  'rgba(255,107,107,0.07)',
+  'rgba(116,185,255,0.07)',
+  'rgba(225,112,85,0.07)'
+];
+const COLOR_BORDER = [
+  'rgba(108,92,231,0.18)',
+  'rgba(0,210,160,0.18)',
+  'rgba(253,203,110,0.18)',
+  'rgba(255,107,107,0.18)',
+  'rgba(116,185,255,0.18)',
+  'rgba(225,112,85,0.18)'
+];
+
+let accessToken = null, refreshToken = null;
+let currentUser = null, currentDevice = null;
+let notes = [], authMode = 'register', selectedColor = 0, editColor = 0, editingId = null;
+let viewMode = 'cards', logOpen = false, logEntries = [], reqCount = 0;
+
+// ── Health ──
+(async () => {
+  try {
+    await fetch(BASE + '/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
+    document.getElementById('statusDot').className = 'dot';
+    document.getElementById('statusText').textContent = 'Online';
+    document.getElementById('statusPill').className = 'pill';
+  } catch {
+    document.getElementById('statusDot').className = 'dot off';
+    document.getElementById('statusText').textContent = 'Offline';
+    document.getElementById('statusPill').className = 'pill offline';
+  }
+})();
+
+// ── Tabs ──
+function switchTab(t) {
+  document.querySelectorAll('.tab').forEach(el => el.classList.toggle('active', el.dataset.tab === t));
+  document.querySelectorAll('.panel').forEach(el => el.classList.toggle('active', el.id === 'panel-' + t));
+  if (t === 'notes' && accessToken && !notes.length) doFetchNotes();
+}
+
+// ── Auth mode ──
+function setAuthMode(m) {
+  authMode = m;
+  document.querySelectorAll('.auth-toggle .toggle-btn').forEach(b =>
+    b.classList.toggle('active', b.textContent.toLowerCase() === m)
+  );
+  document.getElementById('btnAuth').textContent = m === 'register' ? 'Create Account' : 'Login';
+}
+
+// ── View toggle ──
+function setView(v) {
+  viewMode = v;
+  document.getElementById('viewCards').classList.toggle('active', v === 'cards');
+  document.getElementById('viewTable').classList.toggle('active', v === 'table');
+  document.getElementById('notesCards').style.display = v === 'cards' ? '' : 'none';
+  document.getElementById('notesTable').style.display = v === 'table' ? '' : 'none';
+}
+
+// ── Toast ──
+function toast(msg, type = 'info') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type; el.textContent = msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// ── Log ──
+function addLog(method, url, status) {
+  reqCount++;
+  document.getElementById('statReqs').textContent = reqCount;
+  logEntries.unshift({ method, path: url.replace(BASE,''), status, time: new Date().toLocaleTimeString() });
+  document.getElementById('logCount').textContent = '(' + logEntries.length + ')';
+  renderLog();
+}
+function renderLog() {
+  document.getElementById('logScroll').innerHTML = logEntries.map(e =>
+    `<div class="log-row">
+      <span class="log-badge mono ${e.method}">${e.method}</span>
+      <span class="log-path mono">${e.path}</span>
+      <span class="log-code ${e.status < 400 ? 'ok':'err'}">${e.status}</span>
+      <span class="log-ts mono">${e.time}</span>
+    </div>`
+  ).join('');
+}
+function toggleLog() {
+  logOpen = !logOpen;
+  document.getElementById('logDrawer').classList.toggle('open', logOpen);
+}
+
+// ── API ──
+async function api(method, path, body = null, auth = true) {
+  const opts = { method, headers: { 'Content-Type':'application/json' } };
+  if (auth && accessToken) opts.headers['Authorization'] = 'Bearer ' + accessToken;
+  if (body) opts.body = JSON.stringify(body);
+  const url = BASE + path;
+  try {
+    const r = await fetch(url, opts);
+    const data = await r.json();
+    addLog(method, url, r.status);
+    return { ok: r.ok, status: r.status, data };
+  } catch (err) { addLog(method, url, 0); throw err; }
+}
+
+// ── Session ──
+function updateSession() {
+  const has = !!accessToken;
+  document.getElementById('sessionBar').classList.toggle('authed', has);
+  document.getElementById('noSession').style.display = has ? 'none' : '';
+  document.getElementById('sessionUser').style.display = has ? '' : 'none';
+  document.getElementById('sessionToken').style.display = has ? '' : 'none';
+  document.getElementById('btnRefreshBar').style.display = has ? '' : 'none';
+  document.getElementById('btnLogoutBar').style.display = has ? '' : 'none';
+  document.getElementById('tokenActions').style.display = has ? '' : 'none';
+  if (has) {
+    document.getElementById('sessionUser').textContent = currentUser;
+    document.getElementById('sessionToken').textContent = accessToken.slice(0, 32) + '...';
+  }
+}
+
+// ── Auth ──
+async function doAuth() {
+  const username = document.getElementById('authUsername').value.trim();
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const deviceId = document.getElementById('authDevice').value.trim();
+  if (!username || !email || !password || !deviceId) return toast('Fill all fields', 'error');
+  const btn = document.getElementById('btnAuth');
+  const label = btn.textContent;
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+  try {
+    const endpoint = authMode === 'register' ? '/auth/register' : '/auth/login';
+    const res = await api('POST', endpoint, { username, email, password, deviceId }, false);
+    if (res.ok) {
+      accessToken = res.data.data.accessToken;
+      refreshToken = res.data.data.refreshToken;
+      currentUser = username; currentDevice = deviceId;
+      updateSession();
+      toast(authMode === 'register' ? 'Account created!' : 'Logged in!', 'success');
+      switchTab('notes');
+    } else { toast(res.data.message || 'Failed', 'error'); }
+  } catch (e) { toast('Network error', 'error'); }
+  btn.disabled = false; btn.textContent = label;
+}
+
+async function doRefreshToken() {
+  if (!refreshToken) return toast('Login first', 'error');
+  try {
+    const res = await api('POST', '/auth/refresh', { refreshToken, deviceId: currentDevice }, false);
+    if (res.ok) {
+      accessToken = res.data.data.accessToken;
+      refreshToken = res.data.data.refreshToken;
+      updateSession(); toast('Tokens refreshed', 'success');
+    } else { toast(res.data.message || 'Failed', 'error'); }
+  } catch { toast('Network error', 'error'); }
+}
+
+async function doLogout() {
+  if (!accessToken) return;
+  try { await api('POST', '/auth/logout'); } catch {}
+  accessToken = null; refreshToken = null; currentUser = null;
+  notes = []; updateSession(); renderNotes(); renderTable();
+  toast('Logged out', 'success');
+}
+
+// ── Notes CRUD ──
+async function doFetchNotes() {
+  if (!accessToken) return toast('Login first', 'error');
+  try {
+    const res = await api('GET', '/notes');
+    if (res.ok) {
+      notes = res.data.data || [];
+      renderNotes(); renderTable();
+      document.getElementById('noteCount').textContent = notes.length ? '(' + notes.length + ')' : '';
+    } else { toast(res.data.message || 'Failed', 'error'); }
+  } catch { toast('Network error', 'error'); }
+}
+
+async function doCreateNote() {
+  if (!accessToken) return toast('Login first', 'error');
+  const title = document.getElementById('noteTitle').value.trim();
+  const content = document.getElementById('noteContent').value.trim();
+  if (!title || !content) return toast('Title and content required', 'error');
+  const btn = document.getElementById('btnCreate');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+  try {
+    const res = await api('POST', '/notes', { title, content, color: selectedColor });
+    if (res.ok) {
+      document.getElementById('noteTitle').value = '';
+      document.getElementById('noteContent').value = '';
+      toast('Created!', 'success'); doFetchNotes();
+    } else { toast(res.data.message || 'Failed', 'error'); }
+  } catch { toast('Network error', 'error'); }
+  btn.disabled = false; btn.textContent = 'Create Note';
+}
+
+function openEdit(n) {
+  editingId = n.id;
+  document.getElementById('editId').textContent = n.id;
+  document.getElementById('editTitle').value = n.title;
+  document.getElementById('editContent').value = n.content;
+  editColor = n.color || 0;
+  document.querySelectorAll('#editColors .swatch').forEach(s =>
+    s.classList.toggle('on', +s.dataset.c === editColor)
+  );
+  document.getElementById('editModal').classList.add('show');
+}
+function closeEdit() { document.getElementById('editModal').classList.remove('show'); }
+
+async function doUpdateNote() {
+  const title = document.getElementById('editTitle').value.trim();
+  const content = document.getElementById('editContent').value.trim();
+  if (!title || !content) return toast('Fill fields', 'error');
+  try {
+    const res = await api('PUT', '/notes/' + editingId, { title, content, color: editColor });
+    if (res.ok) { toast('Updated!', 'success'); closeEdit(); doFetchNotes(); }
+    else { toast(res.data.message || 'Failed', 'error'); }
+  } catch { toast('Network error', 'error'); }
+}
+
+async function doDeleteNote(id) {
+  try {
+    const res = await api('DELETE', '/notes/' + id);
+    if (res.ok) { toast('Deleted', 'success'); doFetchNotes(); }
+    else { toast(res.data.message || 'Failed', 'error'); }
+  } catch { toast('Network error', 'error'); }
+}
+
+// ── Render ──
+function renderNotes() {
+  const c = document.getElementById('notesCards');
+  if (!notes.length) {
+    c.innerHTML = '<div class="empty"><div class="empty-icon">&#128466;</div><p>No notes yet.</p></div>';
+    return;
+  }
+  c.innerHTML = '<div class="notes-grid">' + notes.map(n => {
+    const ci = n.color || 0;
+    const bg = COLORS[ci];
+    const soft = COLOR_SOFT[ci];
+    const bdr = COLOR_BORDER[ci];
+    const ts = n.createdAt ? new Date(n.createdAt).toLocaleString() : '--';
+    return `<div class="note-card" style="background:${soft}; border-color:${bdr};">
+      <div class="note-bar" style="background:${bg}"></div>
+      <h4>${esc(n.title)}</h4>
+      <p>${esc(n.content)}</p>
+      <div class="meta">
+        <span class="mono">ID ${n.id} &middot; ${ts}</span>
+        <div class="actions">
+          <button class="btn btn-orange btn-sm" onclick='openEdit(${JSON.stringify(n)})'>Edit</button>
+          <button class="btn btn-red btn-sm" onclick="doDeleteNote(${n.id})">Del</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('') + '</div>';
+}
+
+function renderTable() {
+  const b = document.getElementById('tblBody');
+  if (!notes.length) { b.innerHTML = '<tr><td colspan="5" class="empty">No data</td></tr>'; return; }
+  b.innerHTML = notes.map(n => {
+    const ci = n.color || 0;
+    const bg = COLORS[ci];
+    const soft = COLOR_SOFT[ci];
+    const ts = n.createdAt ? new Date(n.createdAt).toLocaleString() : '--';
+    return `<tr style="border-left: 3px solid ${bg};">
+      <td class="id">${n.id}</td><td>${esc(n.title)}</td><td>${esc(n.content)}</td>
+      <td><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${bg};vertical-align:middle;margin-right:6px;"></span>${ci}</td>
+      <td class="mono">${ts}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Helpers ──
+function pickColor(el) {
+  document.querySelectorAll('#colorPicker .swatch').forEach(s => s.classList.remove('on'));
+  el.classList.add('on'); selectedColor = +el.dataset.c;
+}
+function pickEditColor(el) {
+  document.querySelectorAll('#editColors .swatch').forEach(s => s.classList.remove('on'));
+  el.classList.add('on'); editColor = +el.dataset.c;
+}
+function esc(s) { const d = document.createElement('div'); d.textContent = s||''; return d.innerHTML; }
+document.getElementById('editModal').addEventListener('click', e => { if (e.target.classList.contains('overlay')) closeEdit(); });
+</script>
+</body>
+</html>
