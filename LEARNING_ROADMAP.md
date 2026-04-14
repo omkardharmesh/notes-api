@@ -309,7 +309,7 @@ If starting a new Claude session or using a different agent:
 - [x] Phase 4: Auth (JWT + Spring Security)
 - [x] Phase 5: Redis
 - [x] Phase 6: Kafka
-- [ ] Phase 7: AWS
+- [x] Phase 7: AWS
 - [ ] Phase 8: Feature-Based Packaging
 
 ---
@@ -417,6 +417,18 @@ If starting a new Claude session or using a different agent:
 | Topic name mismatch: producer sent to `note_created`, consumer listened on `note-created` | Must match exactly | Use a constant or copy-paste. `_` vs `-` is invisible at a glance |
 | Put full JPA entity (`Note`) in the event class | Use flat primitive fields only | Events cross service boundaries. The consumer might not have your entity class. Keep events self-contained with simple types |
 | `bootstrap-servers: 9092` (port only) | `bootstrap-servers: localhost:9092` (full address) | Same as Phase 2 JDBC URL mistake — always include the host. Port alone isn't a valid address |
+
+### Phase 7: Docker + AWS
+| Mistake | Correction | Lesson |
+|---------|-----------|--------|
+| `KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092` — Kafka tells clients to connect to `localhost`, which breaks when the app runs inside Docker | In Docker, `localhost` means the container itself, not other containers. Use container names (`notes_kafka:9092`) for inter-container communication | Same concept as Phase 1 port mapping, but in reverse. `localhost` only works when you're on the host machine. Inside Docker, containers reach each other by name. In production (AWS), everything uses internal DNS — never `localhost` |
+| Built Docker image on Mac (ARM), ECS Fargate expects AMD64 | `docker build --platform linux/amd64 -t notes-api .` | Always build for the target platform. Mac M-series = `linux/arm64`, AWS Fargate default = `linux/amd64` |
+| Created RDS in the default VPC, ECS was in `notes-api` VPC | Always select the correct VPC when creating any AWS resource | Resources in different VPCs can't talk to each other by default. Everything that needs to communicate must be in the same VPC |
+| Forgot to set initial database name when creating RDS | Set **Initial database name** under "Additional configuration" | Without it, only the default `postgres` database exists. Your JDBC URL pointing to `notes_db` will fail |
+| ECS task landed in private subnet, couldn't pull image from ECR | Ensure ECS tasks use **public subnets** with **auto-assign public IP** when no NAT gateway is configured | Private subnets have no internet access without a NAT gateway. Public subnets + public IP = internet access |
+| RDS security group didn't allow ECS traffic | Add inbound rule: PostgreSQL (5432) from `notes-api-sg` | Security groups are deny-by-default. Every connection between services needs an explicit allow rule |
+| ALB health check returned 403 (Spring Security), ALB marked target unhealthy → 502 Bad Gateway | Update target group health check matcher to accept `200,403` | ALB expects 200 by default. If your app returns anything else on the health check path, ALB thinks the container is dead. Either add a public health endpoint or configure the matcher |
+| ALB security group created in wrong VPC (default instead of `notes-api`) | Always check the VPC dropdown when creating security groups | Security groups are VPC-bound. A SG in VPC-A won't appear in the dropdown for resources in VPC-B |
 
 ---
 
